@@ -5,6 +5,7 @@ from app.schemas.redaction_schema import (
     RedactionResponse,
 )
 from app.services.redaction_service import redact_text
+from app.services.audit_service import log_redaction
 
 router = APIRouter(
     prefix="/redact",
@@ -19,6 +20,11 @@ def redact(request: RedactionRequest):
     """
 
     redacted_text, entities = redact_text(request.text)
+
+    log_redaction(
+        username="doctor",
+        entities=entities,
+    )
 
     return RedactionResponse(
         original_text=request.text,
