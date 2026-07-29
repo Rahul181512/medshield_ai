@@ -1,11 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.api.dependencies import require_role
 from app.schemas.redaction_schema import (
     RedactionRequest,
     RedactionResponse,
 )
-from app.services.redaction_service import redact_text
 from app.services.audit_service import log_redaction
+from app.services.redaction_service import redact_text
 
 router = APIRouter(
     prefix="/redact",
@@ -14,7 +15,10 @@ router = APIRouter(
 
 
 @router.post("/", response_model=RedactionResponse)
-def redact(request: RedactionRequest):
+def redact(
+    request: RedactionRequest,
+    current_user=Depends(require_role("doctor")),
+):
     """
     Demo PHI/PII redaction endpoint.
     """
@@ -22,7 +26,7 @@ def redact(request: RedactionRequest):
     redacted_text, entities = redact_text(request.text)
 
     log_redaction(
-        username="doctor",
+        username=current_user["username"],
         entities=entities,
     )
 
