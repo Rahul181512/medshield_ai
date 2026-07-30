@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.auth.auth_service import authenticate_user
+from app.api.dependencies import get_current_user
 
 router = APIRouter(
     prefix="/auth",
@@ -28,3 +29,15 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
         )
 
     return token
+
+
+@router.get("/me")
+def get_me(current_user=Depends(get_current_user)):
+    """
+    Return details of the currently authenticated user.
+    """
+
+    return {
+        "username": current_user["username"],
+        "role": current_user["role"],
+    }

@@ -35,3 +35,28 @@ def redact(
         redacted_text=redacted_text,
         entities=entities,
     )
+
+@router.post("/batch")
+def batch_redact(texts: list[str]):
+    """
+    Redact multiple documents in a single request.
+    """
+
+    results = []
+
+    for text in texts:
+
+        redacted_text, entities = redact_text(text)
+
+        results.append(
+            {
+                "original_text": text,
+                "redacted_text": redacted_text,
+                "entities": entities,
+            }
+        )
+
+    return {
+        "total_documents": len(texts),
+        "results": results,
+    }    

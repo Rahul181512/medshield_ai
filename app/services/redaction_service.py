@@ -90,3 +90,4 @@ def redact_text(text: str):
         )
 
     return redacted, entities
+
