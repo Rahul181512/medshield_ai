@@ -1,93 +1,62 @@
-import re
+from app.services.detection_service import (
+    detect_with_regex,
+    detect_with_presidio,
+    merge_entities,
+)
 
-from app.schemas.redaction_schema import Entity
+
+PLACEHOLDERS = {
+    "PERSON": "[NAME_001]",
+    "HOSPITAL": "[HOSPITAL_001]",
+    "EMAIL": "[EMAIL_001]",
+    "PHONE": "[PHONE_001]",
+    "AADHAAR": "[AADHAAR_001]",
+    "PAN": "[PAN_001]",
+    "PASSPORT": "[PASSPORT_001]",
+    "DOB": "[DOB_001]",
+    "IP_ADDRESS": "[IP_001]",
+    "CREDIT_CARD": "[CREDIT_CARD_001]",
+}
 
 
 def redact_text(text: str):
     """
-    Perform regex-based PHI/PII redaction.
-    Returns:
-        tuple: (redacted_text, entities)
+    Hybrid Redaction Engine
+    Regex + Presidio
     """
 
-    redacted = text
-    entities = []
+    # Step 1 - Detect using Regex
+    regex_entities = detect_with_regex(text)
 
-    patterns = [
-        # Demo Person
-        ("PERSON", r"\bRahul\b", "[NAME_001]"),
+    # Step 2 - Detect using Presidio
+    presidio_entities = detect_with_presidio(text)
 
-        # Hospital
-        ("HOSPITAL", r"\bAIIMS(?:\s+\w+)?\b", "[HOSPITAL_001]"),
+    # Step 3 - Merge detections
+    entities = merge_entities(
+        regex_entities,
+        presidio_entities,
+    )
 
-        # Email
-        (
-            "EMAIL",
-            r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b",
-            "[EMAIL_001]",
-        ),
+    # Step 4 - Redact
+    redacted_text = text
 
-        # Phone Number
-        (
-            "PHONE",
-            r"\b(?:\+91[- ]?)?[6-9]\d{9}\b",
-            "[PHONE_001]",
-        ),
+    # Longest values first (avoids partial replacement issues)
+    entities = sorted(
+        entities,
+        key=lambda x: len(x.value),
+        reverse=True,
+    )
 
-        # Aadhaar
-        (
-            "AADHAAR",
-            r"\b\d{4}\s?\d{4}\s?\d{4}\b",
-            "[AADHAAR_001]",
-        ),
+    for entity in entities:
 
-        # PAN Card
-        (
-            "PAN",
-            r"\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b",
-            "[PAN_001]",
-        ),
-
-        # Passport (Indian)
-        (
-            "PASSPORT",
-            r"\b[A-PR-WYa-pr-wy][1-9]\d{6}\b",
-            "[PASSPORT_001]",
-        ),
-
-        # Date of Birth
-        (
-            "DOB",
-            r"\b(?:0?[1-9]|[12][0-9]|3[01])[/-](?:0?[1-9]|1[0-2])[/-](?:19|20)\d{2}\b",
-            "[DOB_001]",
-        ),
-
-        # IPv4 Address
-        (
-            "IP_ADDRESS",
-            r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
-            "[IP_001]",
-        ),
-    ]
-
-    for entity_type, pattern, replacement in patterns:
-
-        matches = re.findall(pattern, redacted, flags=re.IGNORECASE)
-
-        for match in matches:
-            entities.append(
-                Entity(
-                    type=entity_type,
-                    value=match,
-                )
-            )
-
-        redacted = re.sub(
-            pattern,
-            replacement,
-            redacted,
-            flags=re.IGNORECASE,
+        placeholder = PLACEHOLDERS.get(
+            entity.type,
+            "[REDACTED]",
         )
 
-    return redacted, entities
+        redacted_text = redacted_text.replace(
+            entity.value,
+            placeholder,
+        )
 
+    return redacted_text, entities
