@@ -10,7 +10,7 @@ MedShield AI is a secure middleware service that detects and redacts sensitive h
 
 The project focuses on protecting Personally Identifiable Information (PII) and Protected Health Information (PHI) while allowing healthcare organizations to safely integrate AI systems into their workflows.
 
-The current implementation provides secure authentication, regex-based PHI detection, audit logging, and a modular architecture that can later be extended using Microsoft Presidio and spaCy.
+The current implementation provides secure JWT authentication, OAuth2 login, role-based access control (RBAC), audit logging, and a hybrid PHI/PII detection engine powered by Regex and Microsoft Presidio. The backend follows a modular architecture that is designed for future enhancements such as dynamic placeholder mapping, medical NLP using spaCy, and reversible anonymization.
 
 ---
 
@@ -20,11 +20,18 @@ The current implementation provides secure authentication, regex-based PHI detec
 
 - FastAPI REST API
 - JWT Authentication
+- OAuth2 Authentication (Swagger UI)
 - Password Hashing (bcrypt)
+- Role-Based Access Control (RBAC)
 - User Authentication
 - Regex-based PHI/PII Detection
-- PHI/PII Redaction Service
+- Microsoft Presidio Integration
+- Hybrid Detection Engine (Regex + Presidio)
+- Duplicate Entity Removal
+- Hybrid Redaction Engine
+- Batch Redaction API
 - Audit Logging
+- User Management APIs
 - Swagger API Documentation
 - Modular Service Layer
 
@@ -32,7 +39,8 @@ The current implementation provides secure authentication, regex-based PHI detec
 
 ## Planned
 
-- Microsoft Presidio Integration
+- Dynamic Placeholder Mapping
+- Entity Mapping Engine
 - spaCy Named Entity Recognition
 - Redis Mapping Vault
 - Reversible Pseudonymization
@@ -57,10 +65,11 @@ The current implementation provides secure authentication, regex-based PHI detec
 - JWT (python-jose)
 - bcrypt
 
-### AI / NLP (Upcoming)
+### AI / NLP 
 
 - Microsoft Presidio
-- spaCy
+- Regular Expressions (Regex)
+- spaCy (Upcoming)
 
 ---
 
@@ -97,9 +106,10 @@ medshield_ai/
 │   │
 │   ├── services/
 │   │   ├── audit_service.py
+|    |  ├── detection_service.py 
 │   │   ├── redaction_service.py
 │   │   └── __init__.py
-│   │
+│   │   
 │   ├── utils/
 │   │   ├── redactor.py
 │   │   └── __init__.py
@@ -125,63 +135,81 @@ medshield_ai/
 # Authentication Flow
 
 ```
-User Login
-      │
-      ▼
-Password Verification (bcrypt)
-      │
-      ▼
-JWT Token Generation
-      │
-      ▼
-Authenticated API Access
+
+                  User Login
+                      │
+                      ▼
+        Password Verification (bcrypt)
+                      │
+                      ▼
+             JWT Token Generation
+                      │
+                      ▼
+           Authenticated API Access
+
 ```
+
 
 ---
 
 # Redaction Pipeline
 
 ```
-Input Text
-      │
-      ▼
-Regex Detection Engine
-      │
-      ▼
-Identify PHI / PII
-      │
-      ▼
-Replace Sensitive Data
-      │
-      ▼
-Generate Audit Log
-      │
-      ▼
-Return Redacted Response
-```
+                   Input Text
+                       │
+                       ▼
+               Regex Detection
+                       │
+                       ▼
+          Microsoft Presidio Detection
+                       │
+                       ▼
+           Merge & Normalize Entities
+                       │
+                       ▼
+             Hybrid Redaction Engine
+                       │
+                       ▼
+              Generate Audit Log
+                       │
+                       ▼
+             Return Redacted Response
 
+
+```          
 ---
 
 # Supported PHI Detection
 
 Current implementation detects:
 
-- Person Name (Demo)
+- Person Name
 - Hospital Name
 - Email Address
 - Phone Number
 - Aadhaar Number
+- PAN Number
+- Passport Number
+- Date of Birth
+- IPv4 Address
 
 ---
 
 # API Endpoints
 
-| Method | Endpoint | Description |
-|---------|----------|-------------|
-| GET | `/` | Welcome API |
-| GET | `/health` | Health Check |
-| POST | `/auth/login` | User Login |
-| POST | `/redact/` | Redact PHI/PII |
+| Method | Endpoint            | Description         |
+| ------ | ------------------- | ------------------- |
+| GET    | `/`                 | Welcome API         |
+| GET    | `/health`           | Health Check        |
+| GET    | `/version`          | Application Version |
+| POST   | `/auth/login`       | User Login          |
+| GET    | `/auth/me`          | Current User        |
+| POST   | `/redact/`          | Redact PHI/PII      |
+| POST   | `/redact/batch`     | Batch Redaction     |
+| GET    | `/audit/logs`       | View Audit Logs     |
+| GET    | `/audit/stats`      | Audit Statistics    |
+| GET    | `/users/`           | List Users          |
+| GET    | `/users/{username}` | User Details        |
 
 ---
 
@@ -273,7 +301,7 @@ Status=SUCCESS
 # Installation
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Rahul181512/medshield_ai.git
 
 cd medshield_ai
 
@@ -298,23 +326,39 @@ http://127.0.0.1:8000/docs
 
 ---
 
-# Current Project Status
+## Current Project Status
 
-| Module | Status |
-|---------|--------|
-| Authentication | ✅ |
-| JWT | ✅ |
-| Password Hashing | ✅ |
-| Redaction API | ✅ |
-| Regex Detection | ✅ |
-| Audit Logging | ✅ |
-| Swagger Documentation | ✅ |
+### Backend
+- ✅ FastAPI Backend
+- ✅ REST APIs
+- ✅ Health & Version APIs
+- ✅ Swagger API Documentation
+
+### Authentication & Security
+- ✅ JWT Authentication
+- ✅ OAuth2 Authentication
+- ✅ Role-Based Access Control (RBAC)
+- ✅ Password Hashing (bcrypt)
+- ✅ User Authentication
+
+### PHI/PII Detection
+- ✅ Regex-based PHI/PII Detection
+- ✅ Microsoft Presidio Integration
+- ✅ Hybrid Detection Engine
+- ✅ Duplicate Entity Removal
+- ✅ Hybrid Redaction Engine
+- ✅ Batch Redaction API
+
+### Monitoring
+- ✅ Audit Logging
+- ✅ User Management APIs
 
 ---
 
 # Future Roadmap
 
-- Microsoft Presidio Integration
+- Dynamic Placeholder Mapping
+- Reverse Mapping
 - spaCy NLP Detection
 - Redis Vault
 - Reversible Pseudonymization
@@ -325,6 +369,7 @@ http://127.0.0.1:8000/docs
 
 ---
 
+pending...
 # Screenshots
 
 Screenshots and demo images will be available inside the `docs/` directory.
