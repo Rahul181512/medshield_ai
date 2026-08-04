@@ -71,7 +71,6 @@ def detect_with_regex(text: str):
     entities = []
 
     patterns = [
-        ("PERSON", r"\bRahul\b"),
         ("HOSPITAL", r"\bAIIMS(?:\s+\w+)?\b"),
         ("EMAIL", r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
         ("PHONE", r"\b(?:\+91[- ]?)?[6-9]\d{9}\b"),

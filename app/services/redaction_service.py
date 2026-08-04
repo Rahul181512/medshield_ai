@@ -4,25 +4,13 @@ from app.services.detection_service import (
     merge_entities,
 )
 
-
-PLACEHOLDERS = {
-    "PERSON": "[NAME_001]",
-    "HOSPITAL": "[HOSPITAL_001]",
-    "EMAIL": "[EMAIL_001]",
-    "PHONE": "[PHONE_001]",
-    "AADHAAR": "[AADHAAR_001]",
-    "PAN": "[PAN_001]",
-    "PASSPORT": "[PASSPORT_001]",
-    "DOB": "[DOB_001]",
-    "IP_ADDRESS": "[IP_001]",
-    "CREDIT_CARD": "[CREDIT_CARD_001]",
-}
+from app.services.mapping_service import PlaceholderMapper
 
 
 def redact_text(text: str):
     """
     Hybrid Redaction Engine
-    Regex + Presidio
+    Regex + Presidio + Dynamic Placeholder Mapping
     """
 
     # Step 1 - Detect using Regex
@@ -37,7 +25,10 @@ def redact_text(text: str):
         presidio_entities,
     )
 
-    # Step 4 - Redact
+    # Step 4 - Initialize mapper
+    mapper = PlaceholderMapper()
+
+    # Step 5 - Redact
     redacted_text = text
 
     # Longest values first (avoids partial replacement issues)
@@ -49,9 +40,9 @@ def redact_text(text: str):
 
     for entity in entities:
 
-        placeholder = PLACEHOLDERS.get(
+        placeholder = mapper.get_placeholder(
             entity.type,
-            "[REDACTED]",
+            entity.value,
         )
 
         redacted_text = redacted_text.replace(
