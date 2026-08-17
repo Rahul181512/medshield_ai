@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from fastapi import APIRouter, Depends
 
 from app.api.dependencies import require_role
@@ -20,10 +22,17 @@ def redact(
     current_user=Depends(require_role("doctor")),
 ):
     """
-    Demo PHI/PII redaction endpoint.
+    Redact PHI/PII using the hybrid detection engine
+    with session-based Redis mapping.
     """
 
-    redacted_text, entities = redact_text(request.text)
+    # Generate a unique session for this request
+    session_id = str(uuid4())
+
+    redacted_text, entities = redact_text(
+        request.text,
+        session_id=session_id,
+    )
 
     log_redaction(
         username=current_user["username"],
@@ -36,17 +45,26 @@ def redact(
         entities=entities,
     )
 
+
 @router.post("/batch")
-def batch_redact(texts: list[str]):
+def batch_redact(
+    texts: list[str],
+):
     """
     Redact multiple documents in a single request.
+    Each document gets its own isolated session.
     """
 
     results = []
 
     for text in texts:
 
-        redacted_text, entities = redact_text(text)
+        session_id = str(uuid4())
+
+        redacted_text, entities = redact_text(
+            text,
+            session_id=session_id,
+        )
 
         results.append(
             {
@@ -59,4 +77,4 @@ def batch_redact(texts: list[str]):
     return {
         "total_documents": len(texts),
         "results": results,
-    }    
+    }
