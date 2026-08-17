@@ -56,6 +56,24 @@ class RedisService:
         """
         return self.client.get(key)
 
+    def get_by_pattern(self, pattern: str):
+        """
+        Return all Redis key-value pairs
+        matching a pattern.
+        """
+
+        mappings = {}
+
+        for key in self.client.scan_iter(
+            match=pattern
+        ):
+            value = self.client.get(key)
+
+            if value is not None:
+                mappings[key] = value
+
+        return mappings
+
     def delete(self, key: str):
         """
         Delete a key from Redis.

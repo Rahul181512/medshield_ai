@@ -13,31 +13,24 @@ def redact_text(
 ):
     """
     Hybrid Redaction Engine
-
     Regex + Presidio + Redis-backed Dynamic Placeholder Mapping
     """
 
-    # Step 1 - Regex Detection
     regex_entities = detect_with_regex(text)
 
-    # Step 2 - Presidio Detection
     presidio_entities = detect_with_presidio(text)
 
-    # Step 3 - Merge detections
     entities = merge_entities(
         regex_entities,
         presidio_entities,
     )
 
-    # Step 4 - Redis-backed mapper
     mapper = PlaceholderMapper(
         session_id=session_id,
     )
 
-    # Step 5 - Redact
     redacted_text = text
 
-    # Longest values first
     entities = sorted(
         entities,
         key=lambda x: len(x.value),
@@ -56,3 +49,28 @@ def redact_text(
         )
 
     return redacted_text, entities
+
+
+def restore_text(
+    text: str,
+    session_id: str,
+):
+    """
+    Restore placeholders using the session-based Redis mapping.
+    """
+
+    mapper = PlaceholderMapper(
+        session_id=session_id,
+    )
+
+    restored_text = text
+
+    mappings = mapper.get_all_mappings()
+
+    for placeholder, original_value in mappings.items():
+        restored_text = restored_text.replace(
+            placeholder,
+            original_value,
+        )
+
+    return restored_text
