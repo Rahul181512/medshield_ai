@@ -45,7 +45,6 @@ def redact_text(
     )
 
     for entity in entities:
-
         placeholder = mapper.get_placeholder(
             entity.type,
             entity.value,
