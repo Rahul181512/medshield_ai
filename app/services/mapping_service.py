@@ -1,22 +1,37 @@
 from collections import defaultdict
 
+from app.services.redis_service import redis_service
+
 
 class PlaceholderMapper:
     """
-    Generates consistent placeholders and maintains
-    forward and reverse mappings.
+    Generates consistent placeholders and stores
+    mappings in Redis.
     """
 
-    def __init__(self):
+    def __init__(self, session_id: str, ttl: int = 3600):
+        self.session_id = session_id
+        self.ttl = ttl
 
-        # (ENTITY_TYPE, VALUE) -> PLACEHOLDER
-        self.forward_mapping = {}
-
-        # PLACEHOLDER -> ORIGINAL VALUE
-        self.reverse_mapping = {}
-
-        # Counter for each entity type
         self.counters = defaultdict(int)
+
+    def _forward_key(self, entity_type: str, value: str) -> str:
+        return (
+            f"medshield:{self.session_id}:"
+            f"forward:{entity_type}:{value.lower()}"
+        )
+
+    def _reverse_key(self, placeholder: str) -> str:
+        return (
+            f"medshield:{self.session_id}:"
+            f"reverse:{placeholder}"
+        )
+
+    def _counter_key(self, entity_type: str) -> str:
+        return (
+            f"medshield:{self.session_id}:"
+            f"counter:{entity_type}"
+        )
 
     def get_placeholder(
         self,
@@ -27,22 +42,44 @@ class PlaceholderMapper:
         Return the same placeholder for repeated values.
         """
 
-        key = (
+        forward_key = self._forward_key(
             entity_type,
-            value.lower(),
+            value,
         )
 
-        if key in self.forward_mapping:
-            return self.forward_mapping[key]
+        existing = redis_service.get(forward_key)
 
-        self.counters[entity_type] += 1
+        if existing:
+            return existing
+
+        counter_key = self._counter_key(entity_type)
+
+        current = redis_service.get(counter_key)
+
+        counter = int(current) if current else 0
+        counter += 1
 
         placeholder = (
-            f"[{entity_type}_{self.counters[entity_type]:03d}]"
+            f"[{entity_type}_{counter:03d}]"
         )
 
-        self.forward_mapping[key] = placeholder
-        self.reverse_mapping[placeholder] = value
+        redis_service.set(
+            forward_key,
+            placeholder,
+            self.ttl,
+        )
+
+        redis_service.set(
+            self._reverse_key(placeholder),
+            value,
+            self.ttl,
+        )
+
+        redis_service.set(
+            counter_key,
+            str(counter),
+            self.ttl,
+        )
 
         return placeholder
 
@@ -51,14 +88,18 @@ class PlaceholderMapper:
         placeholder: str,
     ):
         """
-        Return original value from placeholder.
+        Return original value from Redis.
         """
 
-        return self.reverse_mapping.get(placeholder)
+        return redis_service.get(
+            self._reverse_key(placeholder)
+        )
 
-    def get_all_mappings(self):
+    def clear_session(self):
         """
-        Return all placeholder mappings.
+        Clear all mappings for the current session.
         """
 
-        return self.reverse_mapping
+        # Session cleanup will be implemented
+        # after integration testing.
+        pass
